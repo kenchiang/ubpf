@@ -158,7 +158,7 @@ ubpf_compile(struct ubpf_vm *vm, char **errmsg)
     dasm_init(&d, DASM_MAXSECTION);
 
     |.globals lbl_
-    void *labels[lbl__MAX];
+    void *labels[lbl__MAX + 10];
     dasm_setupglobal(&d, labels, lbl__MAX);
 
     dasm_setup(&d, actions);
