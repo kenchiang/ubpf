@@ -135,6 +135,8 @@ static void muldivmod(dasm_State **dasm, uint16_t pc, uint8_t opcode, int src, i
 
 |.actionlist actions
 
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 ubpf_jit_fn
 ubpf_compile(struct ubpf_vm *vm, char **errmsg)
 {
@@ -158,7 +160,7 @@ ubpf_compile(struct ubpf_vm *vm, char **errmsg)
     dasm_init(&d, DASM_MAXSECTION);
 
     |.globals lbl_
-    void *labels[lbl__MAX + 10];
+    void *labels[lbl__MAX];
     dasm_setupglobal(&d, labels, lbl__MAX);
 
     dasm_setup(&d, actions);
