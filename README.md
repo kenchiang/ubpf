@@ -9,21 +9,46 @@ Userspace eBPF VM
 
 This project aims to create an Apache-licensed library for executing eBPF programs. The primary implementation of eBPF lives in the Linux kernel, but due to its GPL license it can't be used in many projects.
 
-[Linux documentation for the eBPF instruction set] (https://www.kernel.org/doc/Documentation/networking/filter.txt)
+[Linux documentation for the eBPF instruction set](https://www.kernel.org/doc/Documentation/networking/filter.txt)
 
-[Instruction set reference] (https://github.com/iovisor/bpf-docs/blob/master/eBPF.md)
+[Instruction set reference](https://github.com/iovisor/bpf-docs/blob/master/eBPF.md)
 
 This project includes an eBPF assembler, disassembler, interpreter,
 and JIT compiler for x86-64.
 
 ## Building
 
-Run `make -c vm` to build the VM. This produces a static library `libubpf.a`
-and a simple executable used by the testsuite.
+Run `make -C vm` to build the VM. This produces a static library `libubpf.a`
+and a simple executable used by the testsuite. After building the
+library you can install using `make -C vm install` via either root or
+sudo.
+
+## Running the tests
+To run the tests, you first need to build the vm code then use nosetests to execute the tests. Note: The tests have some dependencies that need to be present. See the [.travis.yml](https://github.com/iovisor/ubpf/blob/master/.travis.yml) for details.
+
+### Before running the test (assuming Debian derived distro)
+```
+sudo apt-get update
+sudo apt-get -y install python python-pip python-setuptools python-wheel python-nose
+python2 -m pip install --upgrade "pip<21.0"
+python2 -m pip install -r requirements.txt
+python2 -m pip install cpp-coveralls
+```
+
+### Running the test
+```
+make -C vm COVERAGE=1
+nosetests -v   # run tests
+```
+
+### After running the test
+```
+coveralls --gcov-options '\-lp' -i $PWD/vm/ubpf_vm.c -i $PWD/vm/ubpf_jit_x86_64.c -i $PWD/vm/ubpf_loader.c
+```
 
 ## Compiling C to eBPF
 
-You'll need [Clang 3.7] (http://llvm.org/releases/download.html#3.7.0).
+You'll need [Clang 3.7](http://llvm.org/releases/download.html#3.7.0).
 
     clang-3.7 -O2 -target bpf -c prog.c -o prog.o
 

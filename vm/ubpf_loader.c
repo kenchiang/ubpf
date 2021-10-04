@@ -26,6 +26,10 @@
 
 #define MAX_SECTIONS 32
 
+#ifndef EM_BPF
+#define EM_BPF 247
+#endif
+
 struct bounds {
     const void *base;
     uint64_t size;
@@ -89,8 +93,9 @@ ubpf_load_elf(struct ubpf_vm *vm, const void *elf, size_t elf_size, char **errms
         goto error;
     }
 
-    if (ehdr->e_machine != EM_NONE) {
-        *errmsg = ubpf_error("wrong machine, expected none");
+    if (ehdr->e_machine != EM_NONE && ehdr->e_machine != EM_BPF) {
+        *errmsg = ubpf_error("wrong machine, expected none or BPF, got %d",
+                             ehdr->e_machine);
         goto error;
     }
 
@@ -178,7 +183,7 @@ ubpf_load_elf(struct ubpf_vm *vm, const void *elf, size_t elf_size, char **errms
             const Elf64_Rel *r = &rs[j];
 
             if (ELF64_R_TYPE(r->r_info) != 2) {
-                *errmsg = ubpf_error("bad relocation type");
+                *errmsg = ubpf_error("bad relocation type %u", ELF64_R_TYPE(r->r_info));
                 goto error;
             }
 

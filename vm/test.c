@@ -1,5 +1,6 @@
 /*
  * Copyright 2015 Big Switch Networks, Inc
+ * Copyright 2017 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +34,7 @@ static void register_functions(struct ubpf_vm *vm);
 
 static void usage(const char *name)
 {
-    fprintf(stderr, "usage: %s [-h] [-j|--jit] [-m|--mem PATH] [-e|--elf] BINARY\n", name);
+    fprintf(stderr, "usage: %s [-h] [-j|--jit] [-m|--mem PATH] BINARY\n", name);
     fprintf(stderr, "\nExecutes the eBPF code in BINARY and prints the result to stdout.\n");
     fprintf(stderr, "If --mem is given then the specified file will be read and a pointer\nto its data passed in r1.\n");
     fprintf(stderr, "If --jit is given then the JIT compiler will be used.\n");
@@ -46,15 +47,16 @@ int main(int argc, char **argv)
     struct option longopts[] = {
         { .name = "help", .val = 'h', },
         { .name = "mem", .val = 'm', .has_arg=1 },
-        { .name = "jit", .val = 'm' },
+        { .name = "jit", .val = 'j' },
         { .name = "register-offset", .val = 'r', .has_arg=1 },
+        { }
     };
 
     const char *mem_filename = NULL;
     bool jit = false;
 
     int opt;
-    while ((opt = getopt_long(argc, argv, "hm:jer:", longopts, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hm:jr:", longopts, NULL)) != -1) {
         switch (opt) {
         case 'm':
             mem_filename = optarg;
@@ -117,6 +119,8 @@ int main(int argc, char **argv)
 	rv = ubpf_load(vm, code, code_len, &errmsg);
     }
 
+    free(code);
+
     if (rv < 0) {
         fprintf(stderr, "Failed to load code: %s\n", errmsg);
         free(errmsg);
@@ -135,7 +139,8 @@ int main(int argc, char **argv)
         }
         ret = fn(mem, mem_len);
     } else {
-        ret = ubpf_exec(vm, mem, mem_len);
+        if (ubpf_exec(vm, mem, mem_len, &ret) < 0)
+            ret = UINT64_MAX;
     }
 
     printf("0x%"PRIx64"\n", ret);
@@ -221,6 +226,12 @@ sqrti(uint32_t x)
     return sqrt(x);
 }
 
+static uint64_t
+unwind(uint64_t i)
+{
+    return i;
+}
+
 static void
 register_functions(struct ubpf_vm *vm)
 {
@@ -228,4 +239,7 @@ register_functions(struct ubpf_vm *vm)
     ubpf_register(vm, 1, "memfrob", memfrob);
     ubpf_register(vm, 2, "trash_registers", trash_registers);
     ubpf_register(vm, 3, "sqrti", sqrti);
+    ubpf_register(vm, 4, "strcmp_ext", strcmp);
+    ubpf_register(vm, 5, "unwind", unwind);
+    ubpf_set_unwind_function_index(vm, 5);
 }

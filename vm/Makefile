@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-DYNASM := ../dynasm
-
-CFLAGS := -Wall -Werror -Iinc -I$(DYNASM) -O2 -g
+CFLAGS := -Wall -Werror -Iinc -O2 -g -Wunused-parameter
 LDLIBS := -lm
+
+INSTALL ?= install
+DESTDIR =
+PREFIX ?= /usr/local
 
 ifeq ($(COVERAGE),1)
 CFLAGS += -fprofile-arcs -ftest-coverage
@@ -29,16 +31,18 @@ endif
 
 all: libubpf.a test
 
-%.c: %.dasm minilua
-	LUA_PATH=$(DYNASM)/?.lua ./minilua $(DYNASM)/dynasm.lua -o $@ $<
+ubpf_jit_x86_64.o: ubpf_jit_x86_64.c ubpf_jit_x86_64.h
 
-libubpf.a: ubpf_vm.o ubpf_jit.o ubpf_loader.o
+libubpf.a: ubpf_vm.o ubpf_jit_x86_64.o ubpf_loader.o
 	ar rc $@ $^
 
 test: test.o libubpf.a
 
-minilua: ../luajit-2.0/src/host/minilua.c
-	$(CC) -o $@ $< -lm
+install:
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/lib
+	$(INSTALL) -m 644 libubpf.a $(DESTDIR)$(PREFIX)/lib
+	$(INSTALL) -d $(DESTDIR)$(PREFIX)/include
+	$(INSTALL) -m 644 inc/ubpf.h $(DESTDIR)$(PREFIX)/include
 
 clean:
-	rm -f test libubpf.a *.o ubpf_jit.c
+	rm -f test libubpf.a *.o

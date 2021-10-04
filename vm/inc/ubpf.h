@@ -18,12 +18,40 @@
 #define UBPF_H
 
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+
+// Default values for maximum instruction count and stack size.
+#if !defined(UBPF_MAX_INSTS)
+#define UBPF_MAX_INSTS 65536
+#endif
+
+#if !defined(UBPF_STACK_SIZE)
+#define UBPF_STACK_SIZE 512
+#endif
 
 struct ubpf_vm;
 typedef uint64_t (*ubpf_jit_fn)(void *mem, size_t mem_len);
 
 struct ubpf_vm *ubpf_create(void);
 void ubpf_destroy(struct ubpf_vm *vm);
+
+/*
+ * Enable / disable bounds_check
+ *
+ * Bounds check is enabled by default, but it may be too restrictive
+ * Pass true to enable, false to disable
+ * Returns previous state
+ */
+bool ubpf_toggle_bounds_check(struct ubpf_vm *vm, bool enable);
+
+
+/*
+ * Set the function to be invoked if the jitted program hits divide by zero.
+ *
+ * fprintf is the default function to be invoked on division by zero.
+ */
+void ubpf_set_error_print(struct ubpf_vm *vm, int (*error_printf)(FILE* stream, const char* format, ...));
 
 /*
  * Register an external function
@@ -70,8 +98,28 @@ int ubpf_load(struct ubpf_vm *vm, const void *code, uint32_t code_len, char **er
  */
 int ubpf_load_elf(struct ubpf_vm *vm, const void *elf, size_t elf_len, char **errmsg);
 
-uint64_t ubpf_exec(const struct ubpf_vm *vm, void *mem, size_t mem_len);
+int ubpf_exec(const struct ubpf_vm *vm, void *mem, size_t mem_len, uint64_t* bpf_return_value);
 
 ubpf_jit_fn ubpf_compile(struct ubpf_vm *vm, char **errmsg);
+
+/*
+ * Translate the eBPF byte code to x64 machine code, store in buffer, and 
+ * write the resulting count of bytes to size.
+ *
+ * This must be called after registering all functions.
+ *
+ * Returns 0 on success, -1 on error. In case of error a pointer to the error
+ * message will be stored in 'errmsg' and should be freed by the caller.
+ */
+int ubpf_translate(struct ubpf_vm *vm, uint8_t *buffer, size_t *size, char **errmsg);
+
+/*
+ * Instruct the uBPF runtime to apply unwind-on-success semantics to a helper
+ * function. If the function returns 0, the uBPF runtime will end execution of
+ * the eBPF program and immediately return control to the caller. This is used
+ * for implementing function like the "bpf_tail_call" helper. 
+ * Returns 0 on success, -1 on if there is already an unwind helper set.
+ */
+int ubpf_set_unwind_function_index(struct ubpf_vm *vm, unsigned int idx);
 
 #endif

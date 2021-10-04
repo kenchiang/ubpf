@@ -1,5 +1,8 @@
 import struct
-import StringIO
+try:
+    from StringIO import StringIO as io
+except ImportError:
+    from io import StringIO as io
 
 Inst = struct.Struct("BBHI")
 
@@ -41,6 +44,10 @@ JMP_OPCODES = {
     7: 'jsge',
     8: 'call',
     9: 'exit',
+    10: 'jlt',
+    11: 'jle',
+    12: 'jslt',
+    13: 'jsle',
 }
 
 MODES = {
@@ -151,7 +158,7 @@ def disassemble_one(data, offset):
         return "unknown instruction %#x" % code
 
 def disassemble(data):
-    output = StringIO.StringIO()
+    output = io()
     offset = 0
     while offset < len(data):
         s = disassemble_one(data, offset)

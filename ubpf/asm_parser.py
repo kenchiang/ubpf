@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 from parcon import *
 from collections import namedtuple
 
@@ -39,7 +40,7 @@ mem_instruction = \
     (keywords(mem_load_ops) + reg + "," + memref) | \
     (keywords(["lddw"]) + reg + "," + imm)
 
-jmp_cmp_ops = ['jeq', 'jgt', 'jge', 'jset', 'jne', 'jsgt', 'jsge']
+jmp_cmp_ops = ['jeq', 'jgt', 'jge', 'jlt', 'jle', 'jset', 'jne', 'jsgt', 'jsge', 'jslt', 'jsle']
 jmp_instruction = \
     (keywords(jmp_cmp_ops) + reg + "," + (reg | imm) + "," + offset) | \
     (keywords(['ja']) + offset) | \
@@ -60,4 +61,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     result = parse(args.file.read())
     for inst in result:
-        print repr(inst)
+        print(repr(inst))
