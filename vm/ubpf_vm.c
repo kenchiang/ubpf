@@ -45,9 +45,9 @@ void ubpf_set_error_print(struct ubpf_vm *vm, int (*error_printf)(FILE* stream, 
 }
 
 struct ubpf_vm *
-ubpf_create(void *zmalloc_cookie,
-            ubpf_zmalloc_fn zmalloc_fn,
-            ubpf_free_fn free_fn)
+ubpf_create_ext(void *zmalloc_cookie,
+                ubpf_zmalloc_fn zmalloc_fn,
+                ubpf_free_fn free_fn)
 {
     struct ubpf_vm *vm = zmalloc_fn(zmalloc_cookie, sizeof(*vm));
     if (vm == NULL) {
@@ -77,6 +77,26 @@ ubpf_create(void *zmalloc_cookie,
 
     vm->unwind_stack_extension_index = -1;
     return vm;
+}
+
+
+static void *
+default_zmalloc(void * cookie, size_t size)
+{
+    return calloc(1, size);
+}
+
+static void *
+default_free(void *ptr)
+{
+    free(ptr);
+    return NULL;
+}
+
+struct ubpf_vm *
+ubpf_create(void)
+{
+    return ubpf_create_ext(NULL, default_zmalloc, default_free);
 }
 
 void
